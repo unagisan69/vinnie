@@ -3,7 +3,7 @@ Vinnie helps you rip vinyl
 
 Usage ex:
 ```
-vinnie foldername
+vinnie.py foldername
 ```
 
 Vinnie relies on mutagen to first check the given folder for FLAC files, then confirm all FLAC files are 24-bit, next the metadata of the files is ready to set the folder name to:
