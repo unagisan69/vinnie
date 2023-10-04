@@ -1,6 +1,12 @@
 # vinnie
 Vinnie helps you rip vinyl
 
+Installation:
+```
+pip install mutagen
+chmod +x vinnie.py
+```
+
 Usage ex:
 ```
 vinnie.py foldername
