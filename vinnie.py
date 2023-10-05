@@ -7,7 +7,7 @@ import requests
 import subprocess
 
 ANNOUNCE_URL = "http://your.tracker.url/announce"  # Replace with your tracker's announce URL
-DISCOGS_API_KEY = "xxxx" # Replace with your API key
+DISCOGS_API_KEY = "xxx" # Replace with your API key
 TORRENT_SAVE_PATH = "/Users/unagi/Desktop"  # Optional. Change this to a path like "/path/to/torrents/" if desired
 
 def create_torrent(folder_path):
@@ -16,7 +16,7 @@ def create_torrent(folder_path):
         torrent_file_path = os.path.join(TORRENT_SAVE_PATH, f"{os.path.basename(folder_path)}.torrent")
         output_path_option = ["-o", torrent_file_path]
     try:
-        result = subprocess.run(["mktorrent", "-a", ANNOUNCE_URL] + output_path_option + [folder_path], check=True, text=True, capture_output=True)
+        result = subprocess.run(["mktorrent", "-p", "-a", ANNOUNCE_URL] + output_path_option + [folder_path], check=True, text=True, capture_output=True)
         if result.returncode == 0:
             print(f"Successfully created torrent for {folder_path}.")
         else:
