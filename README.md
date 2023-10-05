@@ -19,6 +19,6 @@ vinnie.py foldername
 ```
 Vinnie first asks for the Discogs release ID for your album. (ex. the URL is https://www.discogs.com/release/1032187-UNKLE-Burn-My-Shadow then the release ID is 1032187). 
 
-Vinnie then pulls the metadata for the album from Discogs and uses it to set the folder name and tags for each track. Vinnie will then confirm that all FLAC files are 24-Bit. 
+Vinnie then pulls the metadata for the album from Discogs and uses it to set the folder name, filenames, and tags for each track. Vinnie will then confirm that all FLAC files are 24-Bit. 
 
 Finally, Vinnie prompts you for audio equipment information in order to create a lineage.txt file which it adds to the new folder. Defaults can be set for this file so you can just press enter for each prompt.
