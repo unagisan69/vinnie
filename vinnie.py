@@ -1,9 +1,49 @@
 #!/usr/bin/env python3
-
 import os
 import sys
 import glob
 from mutagen.flac import FLAC
+import requests
+#https://www.discogs.com/settings/developers click "Generate New Token"
+DISCOGS_API_KEY = "xxxx"
+
+discogs_id = input("Enter Discogs release ID: ")
+
+def fetch_discogs_data(discogs_id):
+    url = f"https://api.discogs.com/releases/{discogs_id}"
+    headers = {
+        "User-Agent": "VinnieScript/1.0",
+        "Authorization": f"Discogs key={DISCOGS_API_KEY}"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error fetching data from Discogs: {response.status_code}")
+        return None
+def extract_discogs_info(data):
+    artist = data['artists'][0]['name']
+    album = data['title']
+    year = data['year']
+    genre = ', '.join(data['genres'])
+
+    tracklist = data['tracklist']
+    tracks = [{'title': track['title'], 'position': track['position']} for track in tracklist]
+
+    return artist, album, year, genre, tracks
+
+def set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks):
+    audio = FLAC(flac_file)
+    track_num = os.path.basename(flac_file).split(' - ')[0] # Assuming files are named like "01 - TrackName.flac"
+    for track in tracks:
+        if track['position'] == track_num:
+            audio["title"] = track['title']
+            break
+    audio["artist"] = artist
+    audio["album"] = album
+    audio["date"] = str(year)
+    audio["genre"] = genre
+    audio.save()
 
 def are_all_files_24_bit(flac_files):
     for file_path in flac_files:
@@ -64,35 +104,33 @@ Soft: {soft}
     return lineage_data
 
 def main(folder_path):
+    # Fetch Discogs data
+    discogs_data = fetch_discogs_data(discogs_id)
+    if not discogs_data:
+        print("Error fetching data from Discogs. Exiting.")
+        return
+
+    artist, album, year, genre, tracks = extract_discogs_info(discogs_data)
+
     # Glob all FLAC files in the given folder
     flac_files = glob.glob(os.path.join(folder_path, "*.flac"))
-    
     if not flac_files:
         print("No FLAC files found in the specified folder.")
         return
-    
+
     # Check if all FLAC files are 24-bit
     if not are_all_files_24_bit(flac_files):
         return
-        
-    # Read metadata from the first FLAC file (assuming all files in the album have consistent metadata)
-    artist, album, year = get_metadata_from_flac(flac_files[0])
-    
-    if not artist or not album or not year:
-        print("Unable to retrieve all necessary metadata. Exiting.")
-        return
-    
+
+    # Update FLAC metadata
+    for flac_file in flac_files:
+        set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks)
+
     # Rename the folder
     folder_path = os.path.abspath(folder_path).rstrip(os.sep)
     parent_folder = os.path.dirname(folder_path)
     new_folder_name = f"{artist} - {album} - {year} [24-Bit FLAC]"
     new_folder_path = os.path.join(parent_folder, new_folder_name)
-
-    # If the target folder is nested within the source, move it up one directory
-    if new_folder_path.startswith(folder_path):
-        new_folder_path = os.path.join(os.path.dirname(parent_folder), new_folder_name)
-
-
     os.rename(folder_path, new_folder_path)
     print(f"Folder renamed to: {new_folder_name}")
 
