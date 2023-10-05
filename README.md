@@ -18,7 +18,7 @@ Lastly, set your Discogs API key which you can obtain here: https://www.discogs.
 
 # Usage
 ```
-vinnie.py foldername
+./vinnie.py foldername
 ```
 Vinnie first asks for the Discogs release ID for your album. (ex. the URL is https://www.discogs.com/release/1032187-UNKLE-Burn-My-Shadow then the release ID is 1032187). 
 
