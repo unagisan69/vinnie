@@ -7,8 +7,26 @@ import requests
 import subprocess
 
 ANNOUNCE_URL = "http://your.tracker.url/announce"  # Replace with your tracker's announce URL
-DISCOGS_API_KEY = "xxx" # Replace with your API key
+DISCOGS_API_KEY = "xxxx" # Replace with your API key
 TORRENT_OUTPUT_FOLDER = "/Users/unagi/Desktop"  # Optional. Change this to a path like "/path/to/torrents/" if desired
+
+def check_and_convert_files(folder_path):
+    wav_files = glob.glob(os.path.join(folder_path, "*.wav"))
+    flac_files = glob.glob(os.path.join(folder_path, "*.flac"))
+
+    if wav_files:  # Convert WAV files to 24-bit FLAC
+        for wav_file in wav_files:
+            output_flac_file = os.path.splitext(wav_file)[0] + ".flac"
+            subprocess.run([
+                "ffmpeg", "-i", wav_file, "-sample_fmt", "s32", "-ar", "96000", output_flac_file
+            ], check=True)
+            os.remove(wav_file)  # Remove the original WAV file after conversion
+
+    if flac_files:  # Confirm FLAC files are 24-bit
+        for flac_file in flac_files:
+            audio = FLAC(flac_file)
+            if audio.info.bits_per_sample != 24:
+                raise ValueError(f"{flac_file} is not 24-bit. Please ensure all FLAC files are 24-bit.")
 
 def create_torrent(folder_path):
     output_path_option = []
@@ -80,7 +98,11 @@ def set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks
     if track['position'].isdigit():
         track_num = track['position']
     else:
-        track_num = str(ord(track['position']) - 64)  # Convert letter to number
+        # Check if the track position is of format like A1, B2, etc.
+        if len(track['position']) > 1 and track['position'][1:].isdigit():
+            track_num = track['position'][1:]
+        else:
+            track_num = str(ord(track['position'][0]) - 64)  # Convert first letter to number
 
     audio["title"] = track['title']
     audio["tracknumber"] = track_num
@@ -140,6 +162,9 @@ def track_num_to_letter(track_num):
     return chr(64 + int(track_num))
 
 def main(folder_path):
+    # Check if files are 24-bit FLAC or convert WAV to 24-bit FLAC
+    check_and_convert_files(folder_path)
+
     # Fetch Discogs data
     discogs_data = fetch_discogs_data(discogs_id)
     if not discogs_data:
@@ -149,14 +174,9 @@ def main(folder_path):
     artist, album, year, genre, tracks = extract_discogs_info(discogs_data)
 
     # Glob all FLAC files in the given folder
-    print(f"Searching in: {os.path.join(folder_path, '*.flac')}")
     flac_files = glob.glob(os.path.join(folder_path, "*.flac"))
     if not flac_files:
         print("No FLAC files found in the specified folder.")
-        return
-
-    # Check if all FLAC files are 24-bit
-    if not are_all_files_24_bit(flac_files):
         return
 
     # Update FLAC metadata and rename file
@@ -167,7 +187,11 @@ def main(folder_path):
         if track['position'].isdigit():
             track_num = track['position']
         else:
-            track_num = str(ord(track['position']) - 64)  # Convert letter to number
+            # Check if the track position is of format like A1, B2, etc.
+            if len(track['position']) > 1 and track['position'][1:].isdigit():
+                track_num = track['position'][1:]
+            else:
+                track_num = str(ord(track['position'][0]) - 64)  # Convert first letter to number
 
         new_filename = f"{track_num} - {track['title']}.flac"
         new_file_path = os.path.join(os.path.dirname(flac_file), new_filename)
