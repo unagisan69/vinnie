@@ -11,15 +11,14 @@ Next make vinnie executable:
 ```
 chmod +x vinnie.py
 ```
-Lastly, set you discogs API key https://www.discogs.com/settings/developers
+Lastly, set your Discogs API key which you can obtain here: https://www.discogs.com/settings/developers
 
 # Usage
 ```
 vinnie.py foldername
 ```
+Vinnie first asks for the Discogs release ID for your album. (ex. the URL is https://www.discogs.com/release/1032187-UNKLE-Burn-My-Shadow then the release ID is 1032187). 
 
-Vinnie relies on mutagen to first check the given folder for FLAC files, then confirm all FLAC files are 24-bit, next the metadata of the files is ready to set the folder name to:
-
-"Artist Name - Album Name - Release Year - [24-Bit FLAC]"
+Vinnie then pulls the metadata for the album from Discogs and uses it to set the folder name and tags for each track. Vinnie will then confirm that all FLAC files are 24-Bit. 
 
 Finally, Vinnie prompts you for audio equipment information in order to create a lineage.txt file which it adds to the new folder. Defaults can be set for this file so you can just press enter for each prompt.
