@@ -1,7 +1,7 @@
 # vinnie
 Vinnie helps you rip vinyl. My goal is to make processing vinyl rips as simple as possible.
 
-Installation:
+#Installation
 
 First install mutagen if you don't already have it:
 ```
@@ -13,7 +13,7 @@ chmod +x vinnie.py
 ```
 Lastly, set you discogs API key https://www.discogs.com/settings/developers
 
-Usage ex:
+#Usage
 ```
 vinnie.py foldername
 ```
