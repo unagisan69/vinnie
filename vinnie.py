@@ -4,8 +4,26 @@ import sys
 import glob
 from mutagen.flac import FLAC
 import requests
+import subprocess
 
-DISCOGS_API_KEY = "xxxx"
+ANNOUNCE_URL = "http://your.tracker.url/announce"  # Replace with your tracker's announce URL
+DISCOGS_API_KEY = "xxxx" # Replace with your API key
+TORRENT_SAVE_PATH = "/Users/unagi/Desktop"  # Optional. Change this to a path like "/path/to/torrents/" if desired
+
+def create_torrent(folder_path):
+    output_path_option = []
+    if TORRENT_SAVE_PATH:
+        torrent_file_path = os.path.join(TORRENT_SAVE_PATH, f"{os.path.basename(folder_path)}.torrent")
+        output_path_option = ["-o", torrent_file_path]
+    try:
+        result = subprocess.run(["mktorrent", "-a", ANNOUNCE_URL] + output_path_option + [folder_path], check=True, text=True, capture_output=True)
+        if result.returncode == 0:
+            print(f"Successfully created torrent for {folder_path}.")
+        else:
+            print("Error creating torrent:", result.stderr)
+    except Exception as e:
+        print(f"Error executing mktorrent: {e}")
+        
 discogs_id = input("Enter Discogs release ID: ")
 
 def fetch_discogs_data(discogs_id):
@@ -130,6 +148,8 @@ def main(folder_path):
         f.write(lineage)
 
     print(f"Saved lineage details to {new_folder_path}/lineage.txt")
+
+    create_torrent(new_folder_path) #mktorrent
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
