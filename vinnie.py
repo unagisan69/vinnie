@@ -8,7 +8,7 @@ import subprocess
 
 ANNOUNCE_URL = "http://your.tracker.url/announce"  # Replace with your tracker's announce URL
 DISCOGS_API_KEY = "xxx" # Replace with your API key
-TORRENT_SAVE_PATH = "/Users/unagi/Desktop"  # Optional. Change this to a path like "/path/to/torrents/" if desired
+TORRENT_OUTPUT_FOLDER = "/Users/unagi/Desktop"  # Optional. Change this to a path like "/path/to/torrents/" if desired
 
 def create_torrent(folder_path):
     output_path_option = []
@@ -49,19 +49,47 @@ def extract_discogs_info(data):
     tracks = [{'title': track['title'], 'position': track['position']} for track in tracklist]
 
     return artist, album, year, genre, tracks
+    
+def determine_track_format(tracks):
+    """
+    Determine if tracks from Discogs use numbers or letters.
+    Returns: "number" or "letter"
+    """
+    first_track = tracks[0]['position']
+    if first_track.isdigit():
+        return "number"
+    elif len(first_track) == 1:  # Assuming single letter (e.g., A, B, C)
+        return "letter"
+    else:
+        print(f"Unexpected track format: {first_track}. Defaulting to 'number'.")
+        return "number"
 
-def set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks):
+def letter_to_number(letter):
+    """Convert A to 1, B to 2, etc."""
+    return ord(letter) - ord('A') + 1
+    
+def set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks, idx):
     audio = FLAC(flac_file)
-    track_num = os.path.basename(flac_file).split(' - ')[0]
-    for track in tracks:
-        if track['position'] == track_num:
-            audio["title"] = track['title']
-            break
+    
+    if idx >= len(tracks):
+        print(f"Warning: No matching track title found in Discogs data for track index {idx}")
+        return
+
+    track = tracks[idx]
+
+    if track['position'].isdigit():
+        track_num = track['position']
+    else:
+        track_num = str(ord(track['position']) - 64)  # Convert letter to number
+
+    audio["title"] = track['title']
+    audio["tracknumber"] = track_num
     audio["artist"] = artist
     audio["album"] = album
     audio["date"] = str(year)
     audio["genre"] = genre
     audio.save()
+
 
 def are_all_files_24_bit(flac_files):
     for file_path in flac_files:
@@ -112,30 +140,40 @@ def track_num_to_letter(track_num):
     return chr(64 + int(track_num))
 
 def main(folder_path):
+    # Fetch Discogs data
     discogs_data = fetch_discogs_data(discogs_id)
     if not discogs_data:
         print("Error fetching data from Discogs. Exiting.")
         return
 
     artist, album, year, genre, tracks = extract_discogs_info(discogs_data)
+
+    # Glob all FLAC files in the given folder
+    print(f"Searching in: {os.path.join(folder_path, '*.flac')}")
     flac_files = glob.glob(os.path.join(folder_path, "*.flac"))
     if not flac_files:
         print("No FLAC files found in the specified folder.")
         return
 
+    # Check if all FLAC files are 24-bit
     if not are_all_files_24_bit(flac_files):
         return
 
-    for idx, flac_file in enumerate(sorted(flac_files), 1):
-        set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks)
-        track_letter = track_num_to_letter(idx)
-        for track in tracks:
-            if track['position'] == track_letter:
-                new_filename = f"{track_letter} - {track['title']}.flac"
-                new_file_path = os.path.join(os.path.dirname(flac_file), new_filename)
-                os.rename(flac_file, new_file_path)
-                break
+    # Update FLAC metadata and rename file
+    for idx, flac_file in enumerate(sorted(flac_files)):
+        set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks, idx)
+    
+        track = tracks[idx]
+        if track['position'].isdigit():
+            track_num = track['position']
+        else:
+            track_num = str(ord(track['position']) - 64)  # Convert letter to number
 
+        new_filename = f"{track_num} - {track['title']}.flac"
+        new_file_path = os.path.join(os.path.dirname(flac_file), new_filename)
+        os.rename(flac_file, new_file_path)
+
+    # Rename the folder
     folder_path = os.path.abspath(folder_path).rstrip(os.sep)
     parent_folder = os.path.dirname(folder_path)
     new_folder_name = f"{artist} - {album} - {year} [24-Bit FLAC]"
@@ -144,12 +182,16 @@ def main(folder_path):
     print(f"Folder renamed to: {new_folder_name}")
 
     lineage = get_lineage()
+    
     with open(os.path.join(new_folder_path, "lineage.txt"), "w") as f:
         f.write(lineage)
 
     print(f"Saved lineage details to {new_folder_path}/lineage.txt")
 
-    create_torrent(new_folder_path) #mktorrent
+    # Create torrent
+    mktorrent_cmd = f"mktorrent -l 18 -a {ANNOUNCE_URL} -p -o \"{TORRENT_OUTPUT_FOLDER if TORRENT_OUTPUT_FOLDER else '.'}/{new_folder_name}.torrent\" \"{new_folder_path}\""
+    os.system(mktorrent_cmd)
+    print(f"Torrent created for {new_folder_name}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
