@@ -21,4 +21,6 @@ Vinnie first asks for the Discogs release ID for your album. (ex. the URL is htt
 
 Vinnie then pulls the metadata for the album from Discogs and uses it to set the folder name, filenames, and tags for each track. Vinnie will then confirm that all FLAC files are 24-Bit. 
 
-Finally, Vinnie prompts you for audio equipment information in order to create a lineage.txt file which it adds to the new folder. Defaults can be set for this file so you can just press enter for each prompt.
+Next, Vinnie prompts you for audio equipment information in order to create a lineage.txt file which it adds to the new folder. Defaults can be set for this file so you can just press enter for each prompt.
+
+Finally, Vinnie creates a torrent file for the folder using the announce URL set in the script.
