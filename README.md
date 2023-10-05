@@ -3,9 +3,11 @@ Vinnie helps you rip vinyl. My goal is to make processing vinyl rips as simple a
 
 # Installation
 
-First install mutagen if you don't already have it:
+First install mutagen and mktorrent if you don't already have them:
+For macOS:
 ```
 pip install mutagen
+brew install mktorrent
 ```
 Next make vinnie executable:
 ```
