@@ -22,7 +22,9 @@ Lastly, set your Discogs API key which you can obtain here: https://www.discogs.
 ```
 Vinnie first asks for the Discogs release ID for your album. (ex. the URL is https://www.discogs.com/release/1032187-UNKLE-Burn-My-Shadow then the release ID is 1032187). 
 
-Vinnie then pulls the metadata for the album from Discogs and uses it to set the folder name, filenames, and tags for each track. Vinnie will then confirm that all FLAC files are 24-Bit. 
+Vinnie then checks the given folder for FLAC files. If it finds WAV files it will first convert them to 24-bit FLAC. If it finds FLAC then it will confirm they are 24-bit.
+
+Vinnie then pulls the metadata for the album from Discogs and uses it to set the folder name, filenames, and tags for each track.
 
 Next, Vinnie prompts you for audio equipment information in order to create a lineage.txt file which it adds to the new folder. Defaults can be set for this file so you can just press enter for each prompt.
 
