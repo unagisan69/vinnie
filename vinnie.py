@@ -103,6 +103,9 @@ Soft: {soft}
 
     return lineage_data
 
+def track_num_to_letter(track_num):
+    return chr(64 + int(track_num))  # 65 is ASCII for 'A'
+
 def main(folder_path):
     # Fetch Discogs data
     discogs_data = fetch_discogs_data(discogs_id)
@@ -122,9 +125,20 @@ def main(folder_path):
     if not are_all_files_24_bit(flac_files):
         return
 
-    # Update FLAC metadata
-    for flac_file in flac_files:
+    # Update FLAC metadata and rename file
+    for idx, flac_file in enumerate(sorted(flac_files), 1):
         set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks)
+    
+        # Convert numeric track number to its equivalent letter
+        track_letter = track_num_to_letter(idx)
+        print(f"Converted {idx} to {track_letter}")  # Debugging line to check conversion
+
+        for track in tracks:
+            if track['position'] == track_letter:
+                new_filename = f"{track_letter} - {track['title']}.flac"
+                new_file_path = os.path.join(os.path.dirname(flac_file), new_filename)
+                os.rename(flac_file, new_file_path)
+                break
 
     # Rename the folder
     folder_path = os.path.abspath(folder_path).rstrip(os.sep)
