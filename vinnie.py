@@ -81,6 +81,20 @@ def determine_track_format(tracks):
     else:
         print(f"Unexpected track format: {first_track}. Defaulting to 'number'.")
         return "number"
+def compute_track_number(track_position):
+    """
+    Compute overall track number based on side and position.
+    E.g., A1 -> 1, A2 -> 2, B1 -> 3, etc.
+    """
+    if not track_position:
+        return None
+
+    side = track_position[0].upper()  # E.g., 'A' or 'B'
+    position_on_side = int(track_position[1:]) if track_position[1:].isdigit() else 0  # Number part
+
+    # Compute a base for the side. E.g., A -> 0, B -> 10, C -> 20, etc.
+    base = (ord(side) - 65) * 10
+    return base + position_on_side
 
 def letter_to_number(letter):
     """Convert A to 1, B to 2, etc."""
@@ -95,17 +109,13 @@ def set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks
 
     track = tracks[idx]
 
-    if track['position'].isdigit():
-        track_num = track['position']
-    else:
-        # Check if the track position is of format like A1, B2, etc.
-        if len(track['position']) > 1 and track['position'][1:].isdigit():
-            track_num = track['position'][1:]
-        else:
-            track_num = str(ord(track['position'][0]) - 64)  # Convert first letter to number
+    track_num = compute_track_number(track['position'])
+    if not track_num:
+        print(f"Error computing track number for position {track['position']}")
+        return
+    audio["tracknumber"] = str(track_num).zfill(2)  # Convert to string and ensure two digits
 
     audio["title"] = track['title']
-    audio["tracknumber"] = track_num
     audio["artist"] = artist
     audio["album"] = album
     audio["date"] = str(year)
@@ -180,22 +190,27 @@ def main(folder_path):
         return
 
     # Update FLAC metadata and rename file
+    tmp_files = []
     for idx, flac_file in enumerate(sorted(flac_files)):
         set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks, idx)
     
         track = tracks[idx]
-        if track['position'].isdigit():
-            track_num = track['position']
-        else:
-            # Check if the track position is of format like A1, B2, etc.
-            if len(track['position']) > 1 and track['position'][1:].isdigit():
-                track_num = track['position'][1:]
-            else:
-                track_num = str(ord(track['position'][0]) - 64)  # Convert first letter to number
+        track_num = compute_track_number(track['position'])
+        if not track_num:
+            print(f"Error computing track number for position {track['position']}")
+            continue
 
-        new_filename = f"{track_num} - {track['title']}.flac"
-        new_file_path = os.path.join(os.path.dirname(flac_file), new_filename)
-        os.rename(flac_file, new_file_path)
+        # Rename to a temporary name first
+        new_filename_tmp = f"TMP-{str(track_num).zfill(2)} - {track['title']}.flac"
+        new_file_path_tmp = os.path.join(os.path.dirname(flac_file), new_filename_tmp)
+        os.rename(flac_file, new_file_path_tmp)
+        tmp_files.append((new_file_path_tmp, track_num, track['title']))
+
+    # Rename from the temporary names to the desired final names
+    for tmp_file, track_num, title in tmp_files:
+        new_filename = f"{str(track_num).zfill(2)} - {title}.flac"
+        new_file_path = os.path.join(os.path.dirname(tmp_file), new_filename)
+        os.rename(tmp_file, new_file_path)
 
     # Rename the folder
     folder_path = os.path.abspath(folder_path).rstrip(os.sep)
