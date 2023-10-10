@@ -6,8 +6,8 @@ from mutagen.flac import FLAC
 import requests
 import subprocess
 
-ANNOUNCE_URL = "http://your.tracker.url/announce"  # Replace with your tracker's announce URL
-DISCOGS_API_KEY = "xxxx" # Replace with your API key
+ANNOUNCE_URL = "https://url.com/announce"  # Replace with your tracker's announce URL
+DISCOGS_API_KEY = "xxx" # Replace with your API key
 TORRENT_OUTPUT_FOLDER = "/Users/unagi/Desktop"  # Optional. Change this to a path like "/path/to/torrents/" if desired
 
 def check_and_convert_files(folder_path):
@@ -107,21 +107,15 @@ def set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks
         print(f"Warning: No matching track title found in Discogs data for track index {idx}")
         return
 
-    track = tracks[idx]
+    track_num = str(idx + 1).zfill(2)  # Determine track number based on order
 
-    track_num = compute_track_number(track['position'])
-    if not track_num:
-        print(f"Error computing track number for position {track['position']}")
-        return
-    audio["tracknumber"] = str(track_num).zfill(2)  # Convert to string and ensure two digits
-
-    audio["title"] = track['title']
+    audio["title"] = tracks[idx]['title']
+    audio["tracknumber"] = track_num
     audio["artist"] = artist
     audio["album"] = album
     audio["date"] = str(year)
     audio["genre"] = genre
     audio.save()
-
 
 def are_all_files_24_bit(flac_files):
     for file_path in flac_files:
@@ -136,7 +130,7 @@ def get_lineage():
     default_vinyl = "VG+"
     default_turntable = "LP120xUSB"
     default_cartridge = "VM540ML"
-    default_adc = "Yamaha RX-V3000"
+    default_adc = "Cambridge Alva Solo"
     default_interface = "Scarlet Focusrite 2i2"
     default_clean = "Boundless"
     default_soft = "Audition > Izotope RX 10"
@@ -147,7 +141,7 @@ def get_lineage():
     vinyl = input(f"Vinyl [{default_vinyl}]: ") or default_vinyl
     turntable = input(f"Turntable [{default_turntable}]: ") or default_turntable
     cartridge = input(f"Cartridge [{default_cartridge}]: ") or default_cartridge
-    adc = input(f"ADC [{default_adc}]: ") or default_adc
+    adc = input(f"Pre [{default_adc}]: ") or default_adc
     interface = input(f"Interface [{default_interface}]: ") or default_interface
     clean = input(f"Clean [{default_clean}]: ") or default_clean
     soft = input(f"Soft [{default_soft}]: ") or default_soft
@@ -190,27 +184,14 @@ def main(folder_path):
         return
 
     # Update FLAC metadata and rename file
-    tmp_files = []
     for idx, flac_file in enumerate(sorted(flac_files)):
         set_flac_metadata_from_discogs(flac_file, artist, album, year, genre, tracks, idx)
-    
-        track = tracks[idx]
-        track_num = compute_track_number(track['position'])
-        if not track_num:
-            print(f"Error computing track number for position {track['position']}")
-            continue
+        
+        track_num = str(idx + 1).zfill(2)  # Start from 01, 02, 03...
 
-        # Rename to a temporary name first
-        new_filename_tmp = f"TMP-{str(track_num).zfill(2)} - {track['title']}.flac"
-        new_file_path_tmp = os.path.join(os.path.dirname(flac_file), new_filename_tmp)
-        os.rename(flac_file, new_file_path_tmp)
-        tmp_files.append((new_file_path_tmp, track_num, track['title']))
-
-    # Rename from the temporary names to the desired final names
-    for tmp_file, track_num, title in tmp_files:
-        new_filename = f"{str(track_num).zfill(2)} - {title}.flac"
-        new_file_path = os.path.join(os.path.dirname(tmp_file), new_filename)
-        os.rename(tmp_file, new_file_path)
+        new_filename = f"{track_num} - {tracks[idx]['title']}.flac"
+        new_file_path = os.path.join(os.path.dirname(flac_file), new_filename)
+        os.rename(flac_file, new_file_path)
 
     # Rename the folder
     folder_path = os.path.abspath(folder_path).rstrip(os.sep)
@@ -231,7 +212,6 @@ def main(folder_path):
     mktorrent_cmd = f"mktorrent -l 18 -a {ANNOUNCE_URL} -p -o \"{TORRENT_OUTPUT_FOLDER if TORRENT_OUTPUT_FOLDER else '.'}/{new_folder_name}.torrent\" \"{new_folder_path}\""
     os.system(mktorrent_cmd)
     print(f"Torrent created for {new_folder_name}")
-
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: vinnie.py <folder_path>")
